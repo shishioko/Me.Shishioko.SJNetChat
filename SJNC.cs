@@ -31,8 +31,9 @@ namespace Me.Shishioko.SJNetChat
             return new(new NetworkStream(socket, true), false, false);
         }
         internal Stream Stream;
+        private ushort Version = 0;
         internal SJNCExtension[]? Channels = null;
-        private readonly SemaphoreSlim SyncOut = new(1, 1);
+        internal readonly SemaphoreSlim SyncOut = new(1, 1);
         private readonly SemaphoreSlim SyncIn = new(1, 1);
         private readonly bool Server;
         private readonly bool KeepOpen;
@@ -55,8 +56,8 @@ namespace Me.Shishioko.SJNetChat
                 extension.Sync.Release();
             }
             Dictionary<string, SJNCExtension> extensionMap = [];
-            await Stream.WriteU16Async(0);
-            ushort remoteVersion = await Stream.ReadU16Async();
+            await Stream.WriteU16Async(1);
+            Version = await Stream.ReadU16Async();
             Contract.Assert(extensionList.Length <= 65534);
             await Stream.WriteU16Async((ushort)extensionList.Length);
             for (int i = 0; i < extensionList.Length; i++)
@@ -105,11 +106,28 @@ namespace Me.Shishioko.SJNetChat
             SyncIn.Dispose();
             SyncOut.Dispose();
         }
-        public Task SendAsync(string message)
+        public async Task SendAsync(string message)
         {
+            Contract.Assert(Channels is not null);
             byte[] data = Encoding.UTF8.GetBytes(message);
             if (data.Length > byte.MaxValue) throw new ArgumentException("Message exceeds 256 byte limit!");
-            return SendAsync(0, data);
+            await SyncOut.WaitAsync();
+            try
+            {
+                await Stream.WriteU16Async(0);
+                await Stream.WriteU8AAsync(data, SizePrefix.U16, ushort.MaxValue);
+                if (Version >= 1)
+                {
+                    for (int i = 0; i < Channels.Length; i++)
+                    {
+                        await Channels[i].OnTextSendAsync(Stream, message);
+                    }
+                }
+            }
+            finally
+            {
+                SyncOut.Release();
+            }
         }
         public void Send(string message)
         {
@@ -129,6 +147,13 @@ namespace Me.Shishioko.SJNetChat
                     {
                         string message = Encoding.UTF8.GetString(data);
                         if (message.Length > byte.MaxValue) throw new ProtocolViolationException();
+                        if (Version >= 1)
+                        {
+                            for (int i = 0; i < Channels.Length; i++)
+                            {
+                                await Channels[i].OnTextReceiveAsync(Stream, message);
+                            }
+                        }
                         return message;
                     }
                     if (channel >= Channels.Length) throw new ProtocolViolationException();
@@ -138,20 +163,6 @@ namespace Me.Shishioko.SJNetChat
             finally
             {
                 SyncIn.Release();
-            }
-        }
-        internal async Task SendAsync(ushort channel, byte[] data)
-        {
-            Contract.Assert(Channels is not null);
-            await SyncOut.WaitAsync();
-            try
-            {
-                await Stream.WriteU16Async(channel);
-                await Stream.WriteU8AAsync(data, SizePrefix.U16, ushort.MaxValue);
-            }
-            finally
-            {
-                SyncOut.Release();
             }
         }
     }

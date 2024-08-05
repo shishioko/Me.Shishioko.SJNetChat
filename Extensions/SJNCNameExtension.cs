@@ -8,6 +8,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
     public sealed class SJNCNameExtension : SJNCExtension
     {
         public string? Name { get; private set; }
+        public string? LatestReceivedName { get; private set; } = null;
         public SJNCNameExtension(string? name)
         {
             if (name is not null) Contract.Assert(name.Length <= 32);
@@ -23,6 +24,14 @@ namespace Me.Shishioko.SJNetChat.Extensions
             if (server) Name = await stream.ReadStringAsync(SizePrefix.U8, 32);
             else await stream.WriteStringAsync(Name!, SizePrefix.U8, 32);
             return stream;
+        }
+        protected internal override async Task OnTextSendAsync(Stream stream, string message)
+        {
+            await stream.WriteStringAsync(Name!, SizePrefix.U8, 32);
+        }
+        protected internal override async Task OnTextReceiveAsync(Stream stream, string message)
+        {
+            LatestReceivedName = await stream.ReadStringAsync(SizePrefix.U8, 32);
         }
         protected internal override Task OnReceiveAsync(byte[] data)
         {
