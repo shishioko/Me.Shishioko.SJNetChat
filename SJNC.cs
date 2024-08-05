@@ -12,33 +12,35 @@ using System.Threading.Tasks;
 
 namespace Me.Shishioko.SJNetChat
 {
-    public sealed class SJNC
+    public sealed class SJNC : IDisposable
     {
-        public static SJNC FromStream(Stream stream, bool server)
+        public static SJNC FromStream(Stream stream, bool server, bool keepOpen = true)
         {
-            return new(stream, server);
+            return new(stream, server, keepOpen);
         }
         public static async Task<SJNC> ConnectAsync(EndPoint endpoint)
         {
             Socket socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             await socket.ConnectAsync(endpoint);
-            return new(new NetworkStream(socket, true), false);
+            return new(new NetworkStream(socket, true), false, false);
         }
         public static SJNC Connect(IPEndPoint endpoint)
         {
             Socket socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             socket.Connect(endpoint);
-            return new(new NetworkStream(socket, true), false);
+            return new(new NetworkStream(socket, true), false, false);
         }
         internal Stream Stream;
         internal SJNCExtension[]? Channels = null;
         private readonly SemaphoreSlim SyncOut = new(1, 1);
         private readonly SemaphoreSlim SyncIn = new(1, 1);
         private readonly bool Server;
-        public SJNC(Stream stream, bool server)
+        private readonly bool KeepOpen;
+        public SJNC(Stream stream, bool server, bool keepOpen)
         {
             Stream = stream;
             Server = server;
+            KeepOpen = keepOpen;
         }
         public async Task InitializeAsync(IEnumerable<SJNCExtension>? extensions = null)
         {
@@ -96,6 +98,12 @@ namespace Me.Shishioko.SJNetChat
                 Channels[i].Channel = (ushort)(i + 1);
             }
             SyncOut.Release();
+        }
+        public void Dispose()
+        {
+            if (!KeepOpen) Stream.Dispose();
+            SyncIn.Dispose();
+            SyncOut.Dispose();
         }
         public Task SendAsync(string message)
         {
