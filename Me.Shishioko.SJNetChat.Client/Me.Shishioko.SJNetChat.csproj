@@ -4,14 +4,20 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>annotations</Nullable>
-		<Title>$(AssemblyName)</Title>
-		<Authors>Shishioko, Jaeger</Authors>
-		<Company>Shishioko@me</Company>
+		<Authors>shishioko@myzuc.net, Jaeger</Authors>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<FileVersion>$(Version)</FileVersion>
+		<AssemblyName>Me.Shishioko.SJNetChat</AssemblyName>
+		<RootNamespace>Me.Shishioko.SJNetChat</RootNamespace>
+		<Title>Me.Shishioko.SJNetChat</Title>
+		<Version>1.0.0.0</Version>
+		<Company>shishioko@me</Company>
+		<Product>Me.Shishioko.SJNetChat</Product>
+		<Copyright>shishioko 2024, All Rights Reserved.</Copyright>
+		<RepositoryUrl>https://github.com/shishioko/Me.Shishioko.SJNetChat</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<AnalysisLevel>6.0-minimum</AnalysisLevel>
 		<Description>Shishioko Jaeger Network Chat Library</Description>
-		<Copyright>Credit</Copyright>
-		<NeutralLanguage>en-001</NeutralLanguage>
-		<AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
-		<FileVersion>$(VersionPrefix)</FileVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
