@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>annotations</Nullable>
+		<Title>$(AssemblyName)</Title>
+		<Authors>Shishioko, Jaeger</Authors>
+		<Company>Shishioko@me</Company>
+		<Description>Shishioko Jaeger Network Chat Library</Description>
+		<Copyright>Credit</Copyright>
+		<NeutralLanguage>en-001</NeutralLanguage>
+		<AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+		<FileVersion>$(VersionPrefix)</FileVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="Net.Myzuc.ShioLib">
+			<HintPath>..\..\..\Net.Myzuc.ShioLib\bin\Release\net8.0\Net.Myzuc.ShioLib.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+</Project>
+
