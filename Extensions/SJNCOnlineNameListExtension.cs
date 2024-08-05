@@ -1,4 +1,5 @@
 ﻿using Net.Myzuc.ShioLib;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -12,9 +13,9 @@ namespace Me.Shishioko.SJNetChat.Extensions
 {
     public sealed class SJNCOnlineNameListExtension : SJNCExtension
     {
+        public Func<string, Task> OnAddAsync = (string name) => Task.CompletedTask;
+        public Func<string, Task> OnRemoveAsync = (string name) => Task.CompletedTask;
         private readonly List<string> InternalList = [];
-        public IReadOnlyList<string> List => InternalList.AsReadOnly();
-        private readonly SemaphoreSlim ListSync = new(1, 1);
         private readonly bool Server;
         public SJNCOnlineNameListExtension(IEnumerable<string>? list = null)
         {
@@ -46,32 +47,24 @@ namespace Me.Shishioko.SJNetChat.Extensions
         protected internal override async Task<Stream> OnInitializeAsync(Stream stream, bool server)
         {
             Contract.Assert(Server == server);
-            await ListSync.WaitAsync();
-            try
+            if (Server)
             {
-                if (Server)
+                foreach (string name in InternalList)
                 {
-                    foreach(string name in InternalList)
-                    {
-                        Contract.Assert(name.Length <= 32);
-                        await stream.WriteBoolAsync(true);
-                        await stream.WriteStringAsync(name, SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
-                    }
-                    await stream.WriteBoolAsync(false);
+                    Contract.Assert(name.Length <= 32);
+                    await stream.WriteBoolAsync(true);
+                    await stream.WriteStringAsync(name, SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
                 }
-                else
-                {
-                    while (await stream.ReadBoolAsync())
-                    {
-                        string name = await stream.ReadStringAsync(SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
-                        if (name.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
-                        InternalList.Add(name);
-                    }
-                }
+                await stream.WriteBoolAsync(false);
             }
-            finally
+            else
             {
-                ListSync.Release();
+                while (await stream.ReadBoolAsync())
+                {
+                    string name = await stream.ReadStringAsync(SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
+                    if (name.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
+                    InternalList.Add(name);
+                }
             }
             return stream;
         }
@@ -83,22 +76,14 @@ namespace Me.Shishioko.SJNetChat.Extensions
         {
             return Task.CompletedTask;
         }
-        protected internal override async Task OnReceiveAsync(byte[] data)
+        protected internal override Task OnReceiveAsync(byte[] data)
         {
             if (Server) throw new ProtocolViolationException();
             using MemoryStream packetIn = new(data);
             bool action = packetIn.ReadBool();
             string name = packetIn.ReadString(SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
-            await ListSync.WaitAsync();
-            try
-            {
-                if (action) InternalList.Add(name);
-                else InternalList.Remove(name);
-            }
-            finally
-            {
-                ListSync.Release();
-            }
+            if (action) return OnAddAsync(name);
+            else return OnRemoveAsync(name);
         }
     }
 }
