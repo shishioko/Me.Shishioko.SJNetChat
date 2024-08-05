@@ -2,6 +2,7 @@
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Threading.Tasks;
+using System.Net;
 
 namespace Me.Shishioko.SJNetChat.Extensions
 {
@@ -21,17 +22,20 @@ namespace Me.Shishioko.SJNetChat.Extensions
         protected internal override async Task<Stream> OnInitializeAsync(Stream stream, bool server)
         {
             Contract.Assert(server != Name is not null);
-            if (server) Name = await stream.ReadStringAsync(SizePrefix.U8, 32);
-            else await stream.WriteStringAsync(Name!, SizePrefix.U8, 32);
+            if (server) Name = await stream.ReadStringAsync(SizePrefix.U8, byte.MaxValue);
+            else await stream.WriteStringAsync(Name!, SizePrefix.U8, byte.MaxValue);
+            if (Name.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
             return stream;
         }
         protected internal override async Task OnTextSendAsync(Stream stream, string message)
         {
-            await stream.WriteStringAsync(Name!, SizePrefix.U8, 32);
+            Contract.Assert(Name.Length <= 32);
+            await stream.WriteStringAsync(Name!, SizePrefix.U8, byte.MaxValue);
         }
         protected internal override async Task OnTextReceiveAsync(Stream stream, string message)
         {
-            LatestReceivedName = await stream.ReadStringAsync(SizePrefix.U8, 32);
+            LatestReceivedName = await stream.ReadStringAsync(SizePrefix.U8, byte.MaxValue);
+            if (LatestReceivedName.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
         }
         protected internal override Task OnReceiveAsync(byte[] data)
         {
