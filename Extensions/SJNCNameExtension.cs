@@ -9,7 +9,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
     public sealed class SJNCNameExtension : SJNCExtension
     {
         public string? Name { get; private set; }
-        public string? AttachedName { get; private set; } = null;
+        public string? AttachedName { get; set; } = null;
         private bool Server = false;
         public SJNCNameExtension(string? name)
         {
