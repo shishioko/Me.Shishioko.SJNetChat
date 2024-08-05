@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Me.Shishioko.SJNetChat.Extensions
@@ -63,7 +62,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
                 {
                     string name = await stream.ReadStringAsync(SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
                     if (name.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
-                    InternalList.Add(name);
+                    await OnAddAsync(name);
                 }
             }
             return stream;
@@ -82,6 +81,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
             using MemoryStream packetIn = new(data);
             bool action = packetIn.ReadBool();
             string name = packetIn.ReadString(SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
+            if (name.Length > 32) throw new ProtocolViolationException("Name longer than 32 characters!");
             if (action) return OnAddAsync(name);
             else return OnRemoveAsync(name);
         }

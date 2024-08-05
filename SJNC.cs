@@ -100,6 +100,10 @@ namespace Me.Shishioko.SJNetChat
             {
                 Channels[i].Channel = (ushort)(i + 1);
             }
+            for (int i = 0; i < Channels.Length; i++)
+            {
+                Channels[i].Unlocked = true;
+            }
             SyncOut.Release();
         }
         public void Dispose()
@@ -158,8 +162,8 @@ namespace Me.Shishioko.SJNetChat
                         }
                         return message;
                     }
-                    if (channel >= Channels.Length) throw new ProtocolViolationException();
-                    await Channels[channel].OnReceiveAsync(data);
+                    if (channel - 1 >= Channels.Length) throw new ProtocolViolationException();
+                    await Channels[channel - 1].OnReceiveAsync(data);
                 }
             }
             finally
