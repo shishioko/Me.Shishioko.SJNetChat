@@ -78,6 +78,7 @@ namespace Me.Shishioko.SJNetChat
                 if (Server) continue;
                 extension.Unlocked = true;
                 Stream = await extension.OnInitializeAsync(Stream, false);
+                extension.Common = true;
                 extension.Unlocked = false;
                 initializedExtensions.Add(extension);
             }
@@ -89,6 +90,7 @@ namespace Me.Shishioko.SJNetChat
                     if (!commonExtensions.Contains(extension)) continue;
                     extension.Unlocked = true;
                     Stream = await extension.OnInitializeAsync(Stream, true);
+                    extension.Common = true;
                     extension.Unlocked = false;
                     initializedExtensions.Add(extension);
                 }

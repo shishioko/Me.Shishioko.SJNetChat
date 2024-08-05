@@ -8,6 +8,7 @@ namespace Me.Shishioko.SJNetChat
 {
     public abstract class SJNCExtension
     {
+        public bool Common { get; internal set; } = false;
         internal SJNC? SJNC = null;
         internal bool Unlocked = false;
         internal ushort Channel = 0;
