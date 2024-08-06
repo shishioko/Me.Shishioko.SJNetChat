@@ -16,7 +16,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
         public Func<string, Task> OnRemoveAsync = (string name) => Task.CompletedTask;
         private readonly List<string> InternalList = [];
         private readonly bool Server;
-        public SJNCOnlineNameListExtension(IEnumerable<string>? list = null)
+        public SJNCOnlineNameListExtension(IEnumerable<string>? list = null) : base("SJNCOnlineNameList")
         {
             Server = list is not null;
             if (list is not null) InternalList = list.ToList();
@@ -39,10 +39,6 @@ namespace Me.Shishioko.SJNetChat.Extensions
             packetOut.WriteString(name, SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
             return SendAsync(packetOut.ToArray());
         }
-        protected internal override string Identify()
-        {
-            return "SJNCOnlineNameList";
-        }
         protected internal override async Task<Stream> OnInitializeAsync(Stream stream, bool server)
         {
             Contract.Assert(Server == server);
@@ -50,7 +46,7 @@ namespace Me.Shishioko.SJNetChat.Extensions
             {
                 foreach (string name in InternalList)
                 {
-                    Contract.Assert(name.Length <= 32);
+                    Contract.Assert(name.Length <= 32); //TODO: replace asserts with exceptions
                     await stream.WriteBoolAsync(true);
                     await stream.WriteStringAsync(name, SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
                 }
@@ -66,14 +62,6 @@ namespace Me.Shishioko.SJNetChat.Extensions
                 }
             }
             return stream;
-        }
-        protected internal override Task OnTextSendAsync(Stream stream, string message)
-        {
-            return Task.CompletedTask;
-        }
-        protected internal override Task OnTextReceiveAsync(Stream stream, string message)
-        {
-            return Task.CompletedTask;
         }
         protected internal override Task OnReceiveAsync(byte[] data)
         {
