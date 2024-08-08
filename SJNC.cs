@@ -42,7 +42,7 @@ namespace Me.Shishioko.SJNetChat
         /// <param name="endpoint">The <see cref="EndPoint"/> to connect to</param>
         /// <returns>The created <see cref="SJNC"/> object</returns>
         /// <exception cref="AggregateException"></exception>
-        public static SJNC Connect(IPEndPoint endpoint)
+        public static SJNC Connect(EndPoint endpoint)
         {
             return ConnectAsync(endpoint).Result;
         }
