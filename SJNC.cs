@@ -117,7 +117,7 @@ namespace Me.Shishioko.SJNetChat
                     if (!extensionMap.TryGetValue(extensionName, out SJNCExtension extension)) continue;
                     commonExtensions.Add(extension);
                 }
-                extensionList = [..commonExtensions];
+                extensionList = [..(Server ? extensionList.Where(commonExtensions.Contains) : commonExtensions)];
                 for (int i = 0; i < extensionList.Length; i++)
                 {
                     SJNCExtension extension = extensionList[i];
