@@ -80,8 +80,8 @@ namespace Me.Shishioko.SJNetChat
             await SyncOut.WaitAsync();
             try
             {
-                SJNCExtension[] extensionList = (extensions ?? []).ToArray();
-                foreach (SJNCExtension extension in extensionList)
+                SJNCExtension[] localExtensions = (extensions ?? []).ToArray();
+                foreach (SJNCExtension extension in localExtensions)
                 {
                     await extension.Sync.WaitAsync();
                     if (extension.SJNC is not null)
@@ -95,15 +95,15 @@ namespace Me.Shishioko.SJNetChat
                 Dictionary<string, SJNCExtension> extensionMap = [];
                 await Stream.WriteU16Async(1);
                 Version = await Stream.ReadU16Async();
-                if (extensionList.Length >= ushort.MaxValue - 1)
+                if (localExtensions.Length >= ushort.MaxValue - 1)
                 {
                     ownError = true;
                     throw new ProtocolViolationException("More than supported extensions!");
                 }
-                await Stream.WriteU16Async((ushort)extensionList.Length);
-                for (int i = 0; i < extensionList.Length; i++)
+                await Stream.WriteU16Async((ushort)localExtensions.Length);
+                for (int i = 0; i < localExtensions.Length; i++)
                 {
-                    SJNCExtension extension = extensionList[i];
+                    SJNCExtension extension = localExtensions[i];
                     string extensionName = extension.Name;
                     extensionMap.Add(extensionName, extension);
                     await Stream.WriteStringAsync(extensionName, SizePrefix.U8, byte.MaxValue, Encoding.UTF8);
@@ -117,25 +117,22 @@ namespace Me.Shishioko.SJNetChat
                     if (!extensionMap.TryGetValue(extensionName, out SJNCExtension extension)) continue;
                     commonExtensions.Add(extension);
                 }
-                extensionList = [..(Server ? extensionList.Where(commonExtensions.Contains) : commonExtensions)];
-                for (int i = 0; i < extensionList.Length; i++)
+                localExtensions = [..(Server ? localExtensions.Where(commonExtensions.Contains) : commonExtensions)];
+                Channels = [.. localExtensions];
+                for (int i = 0; i < localExtensions.Length; i++)
                 {
-                    SJNCExtension extension = extensionList[i];
-                    if (!commonExtensions.Contains(extension)) continue;
+                    SJNCExtension extension = localExtensions[i];
                     extension.Unlocked = true;
                     Stream = await extension.OnInitializeAsync(Stream, Server);
                     extension.Common = true;
                     extension.Unlocked = false;
                     initializedExtensions.Add(extension);
-                }
-                Channels = [..initializedExtensions];
-                for (int i = 0; i < Channels.Length; i++)
-                {
+                    Channels[i] = extension;
                     Channels[i].Channel = (ushort)(i + 1);
                 }
-                for (int i = 0; i < Channels.Length; i++)
+                for (int i = 0; i < localExtensions.Length; i++)
                 {
-                    Channels[i].Unlocked = true;
+                    localExtensions[i].Unlocked = true;
                 }
             }
             catch(Exception ex)
@@ -187,7 +184,7 @@ namespace Me.Shishioko.SJNetChat
         public async Task SendAsync(string message)
         {
             if (Channels is null) throw new InvalidOperationException("SJNC is not connected!");
-            byte[] data = Encoding.UTF8.GetBytes(message); //TODO: fix so its chars and not bytes
+            byte[] data = Encoding.UTF8.GetBytes(message);
             if (message.Length > byte.MaxValue) throw new ProtocolViolationException("Message exceeds 255 character limit!");
             await SyncOut.WaitAsync();
             try
