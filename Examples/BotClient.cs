@@ -1,45 +1,20 @@
-﻿using Me.Shishioko.SJNetChat;
+using Me.Shishioko.SJNetChat;
 using Me.Shishioko.SJNetChat.Extensions;
-using System.Drawing;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
-
-namespace SJNCCLI
+using System.Net.NetworkInformation;
+using System.Management;
+namespace ConsoleApp1
 {
-
-    public static class Program
+    public static class ExampleClient
     {
-        private static string LocalName = "User";
-        //public static void Main(string[] arguments)
-        public static void Main(string[] arguments)
+        public static async Task Main()
         {
-            Stopwatch uptime = Stopwatch.StartNew();
-            string encryption = "True";
+            SJNCNameExtension name = new("JBot");
+            string? endpoint = "eu0.dev.myzuc.net:1338";
+            string[] split = endpoint.Split(':', 2);
+            SJNC sjnc = await SJNC.ConnectAsync(new DnsEndPoint(split[0], ushort.Parse(split[1])));
+           
 
-            //if (arguments.Length < 2)
-            //{
-            //ShioConsole.WriteLine("Usage: sjnccli.exe <endpoint> <name> [-noencrypt]");
-            //return;
-            //}
-
-            //string[] parameters = arguments.Skip(2).ToArray();
-            Console.Write("Enter Username: ");
-            string LocalName = Console.ReadLine();
-            Console.Write("Enter Host URL: ");
-            string HostUrl = Console.ReadLine();
-            Console.Clear();
-            SJNCNameExtension name = new(LocalName); // = arguments[1]
-            string fullAddress = HostUrl;
-            int fullAddressSplit = fullAddress.LastIndexOf(':');
-            using SJNC sjnc = SJNC.Connect(new DnsEndPoint(fullAddress[..fullAddressSplit], ushort.Parse(fullAddress[(fullAddressSplit + 1)..])));
-            SJNCAesExtension? aes = new();
             SJNCOnlineNameListExtension nameList = new(null);
             List<string> list = [];
             nameList.OnAddAsync += async (name) => {
@@ -49,41 +24,61 @@ namespace SJNCCLI
             {
                 list.Remove(name);
             };
-            List<SJNCExtension> extensions = [name, nameList, aes];
-            sjnc.Initialize(extensions);
-            foreach (SJNCExtension extension in extensions.Where(extension => !extension.Common)) ShioConsole.WriteLine($"{ComputeColor(LocalName, 32)}Extension {ComputeColor(LocalName, 64)}{extension.GetType().Name} {ComputeColor(LocalName, 32)}was not loaded!");
-            ThreadPool.QueueUserWorkItem((object? _) =>
-            {
-                while (true)
-                {
-                    string message = sjnc.Receive();
-                    string sender = name.AttachedName ?? "User";
+            await sjnc.InitializeAsync([name, nameList]);
 
-                    ShioConsole.WriteLine($"{ComputeColor(sender, 64)}{sender}{ComputeColor(sender, 128)}: {message}");
-                }
-            });
+            sjnc.SendAsync("Hello I'm JaegerBot please run !help for working commands");
             while (true)
             {
-                string input = ShioConsole.ReadLine(input => $"{ComputeColor(LocalName, 128)}{input}");
-                if (input == "?uptime")
+                var receivedMessage = await sjnc.ReceiveAsync();
+                Console.WriteLine(name.AttachedName + ": " + receivedMessage);
+                if (receivedMessage.Contains("!pong"))
                 {
-                    ShioConsole.WriteLine($"Program Uptime: {uptime.Elapsed}");
-                    continue;
-                };
-                if (input == "?online")
+                    sjnc.SendAsync("ping");
+                }
+                if (receivedMessage.Contains("!yourmother"))
+                {
+                    sjnc.SendAsync("*TF2 SPY NOISES*");
+                }
+                if (receivedMessage.Contains("!users"))
                 {
                     string users = string.Join(", ", list);
-                    ShioConsole.WriteLine($"Users online: {users}");
-                    continue;
+                    sjnc.SendAsync(users);
+                }
+                if (receivedMessage.Contains("!ping"))
+                {
+                    var ping = new Ping();
+                    PingReply reply = await ping.SendPingAsync("eu0.dev.myzuc.net");
+                    string v = $"RoundTrip time: {reply.RoundtripTime} ms";
+                    string roundTripTimeMessage = v;
+                    if (reply.Status == IPStatus.Success)
+                    {
+                        sjnc.SendAsync(roundTripTimeMessage);
+                    };
+                }
+                if (receivedMessage == "!help")
+                {
+                    sjnc.SendAsync("\nping - Ping the homeserver\npong - ping\nclear - clears the chat\nusers - Displays currently connected users");
+                }
+                if (receivedMessage == "!kill")
+                {
+                    System.Environment.Exit(0);
+                }
+                if (receivedMessage == "!clear")
+                {
+                    sjnc.SendAsync("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+                }
+                if (receivedMessage == "!fetch")
+                {
+                    ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_Processor");
+                    ManagementObjectCollection queryCollection = searcher.Get();
+                    foreach (ManagementObject m in queryCollection)
+                    {
+                        string cpuInfo = "";
+                        cpuInfo = $"{m["Name"]}";
+                        await sjnc.SendAsync($"\nCPU: {cpuInfo}\n");
+                    }
                 };
-                sjnc.Send(input);
             }
-        }
-        private static string ComputeColor(string input, int shift)
-        {
-            byte[] hash = MD5.HashData(Encoding.UTF8.GetBytes(input));
-            Color color = Color.FromArgb(hash[0] / 2 + shift, hash[1] / 2 + shift, hash[2] / 2 + shift);
-            return $"\u001b[38;2;{color.R};{color.G};{color.B}m";
         }
     }
 }
